@@ -51,17 +51,24 @@ describe Oystercard do
 
   describe "#touch_out" do
     let(:station) {"Picadilly"}
-    it { is_expected.to respond_to(:touch_out) }
+    it { is_expected.to respond_to(:touch_out).with(1).argument }
 
     it 'should change journey_status to false' do
     subject.top_up(10)
     subject.touch_in(station)
-    expect {subject.touch_out}.to change {subject.entry_station}.to(nil)
+    expect {subject.touch_out(station)}.to change {subject.entry_station}.to(nil)
     end
 
     it 'should deduct minimum_amount from balance' do
       subject.top_up(10)
-      expect {subject.touch_out}.to change {subject.balance}.by(-Oystercard::MINIMUM_AMOUNT)
+      expect {subject.touch_out(station)}.to change {subject.balance}.by(-Oystercard::MINIMUM_AMOUNT)
+    end
+
+    it 'should record entry and exit stations in journey_history' do
+      subject.top_up(10)
+      subject.touch_in('Picadilly')
+      subject.touch_out("Euston")
+      expect(subject.journey_history).to eq([{entry_station: "Picadilly", exit_station: "Euston"}])
     end
 
   end
@@ -76,8 +83,23 @@ describe Oystercard do
     it 'should forget entry station on touch_out' do
       subject.top_up(10)
       subject.touch_in('Picadilly')
-      subject.touch_out
+      subject.touch_out("station")
       expect(subject.entry_station).to eq(nil)
+    end
+  end
+
+  describe "#exit_station" do
+    it 'should record exit station on touch_out' do
+      subject.top_up(10)
+      subject.touch_in('Picadilly')
+      subject.touch_out('Euston')
+      expect(subject.exit_station).to eq('Euston')
+    end
+  end
+
+  describe "journey_history" do
+    it 'should return empty array on initalize' do
+      expect(subject.journey_history).to eq []
     end
   end
 
